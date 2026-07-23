@@ -136,6 +136,21 @@ def api_health():
     return jsonify({"status": "ok", "service": "drilling-optimization"})
 
 
+@app.route("/api/docs")
+def api_docs():
+    return jsonify({
+        "openapi": "3.0.0",
+        "info": {"title": "Drilling Optimization - Optimizacion de Perforacion", "version": "1.0.0"},
+        "paths": {
+            "/": {"get": {"summary": "Dashboard principal"}},
+            "/api/health": {"get": {"summary": "Health check del servicio"}},
+            "/api/models": {"get": {"summary": "Informacion de los modelos entrenados"}},
+            "/api/predict": {"post": {"summary": "Predecir ROP, torque y vibracion"}},
+            "/api/optimize": {"post": {"summary": "Optimizar parametros de perforacion (WOB, RPM)"}},
+        }
+    })
+
+
 if __name__ == "__main__":
     print("=" * 60)
     print("  Servidor Web - Optimizacion de Perforacion")
