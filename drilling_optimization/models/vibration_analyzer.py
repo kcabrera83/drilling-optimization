@@ -1,8 +1,6 @@
-"""Modelo de analisis de vibracion."""
-
 import numpy as np
-from sklearn.ensemble import RandomForestClassifier, GradientBoostingRegressor
-from sklearn.metrics import accuracy_score, classification_report, mean_absolute_error, r2_score
+import lightgbm as lgb
+from sklearn.metrics import accuracy_score, mean_absolute_error, r2_score
 import pickle
 
 
@@ -10,11 +8,11 @@ class VibrationAnalyzer:
     VIBRATION_THRESHOLDS = [1.0, 2.0, 3.0]
 
     def __init__(self):
-        self.classifier = RandomForestClassifier(
-            n_estimators=200, max_depth=10, random_state=42, n_jobs=-1
+        self.classifier = lgb.LGBMClassifier(
+            n_estimators=200, max_depth=10, random_state=42, verbose=-1
         )
-        self.severity_regressor = GradientBoostingRegressor(
-            n_estimators=150, max_depth=5, learning_rate=0.1, random_state=42
+        self.severity_regressor = lgb.LGBMRegressor(
+            n_estimators=150, max_depth=5, learning_rate=0.1, random_state=42, verbose=-1
         )
         self.trained = False
 
