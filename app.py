@@ -139,6 +139,8 @@ async def api_optimize(request: DrillOptimizeRequest):
         best_rop = 0
         best_params = {}
         best_torque = 0
+        best_vib = float("inf")
+        all_combos = []
         for wob in np.arange(10, 35, 5):
             for rpm in np.arange(80, 160, 20):
                 row = {**base, "wob_klbf": wob, "rpm": rpm}
@@ -147,10 +149,24 @@ async def api_optimize(request: DrillOptimizeRequest):
                 rop = float(models["rop"].predict(X)[0])
                 torque = float(models["torque"].predict(X)[0])
                 vib = float(models["vibration"].predict(X)["vibration_g"][0])
+                all_combos.append({"wob_klbf": float(wob), "rpm": int(rpm), "rop": rop, "torque": torque, "vibration_g": vib})
                 if vib < 2.5 and rop > best_rop:
                     best_rop = rop
                     best_torque = torque
+                    best_vib = vib
                     best_params = {"wob_klbf": float(wob), "rpm": int(rpm)}
+
+        if not best_params:
+            fallback = min(all_combos, key=lambda c: c["vibration_g"])
+            return {
+                "status": "ok",
+                "optimal_wob": fallback["wob_klbf"],
+                "optimal_rpm": fallback["rpm"],
+                "predicted_rop": round(fallback["rop"], 2),
+                "predicted_torque": round(fallback["torque"], 2),
+                "warning": "No WOB/RPM combination met the vibration threshold (< 2.5g). Returning lowest-vibration option.",
+            }
+
         return {
             "status": "ok",
             "optimal_wob": best_params.get("wob_klbf"),
