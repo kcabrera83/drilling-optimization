@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Optimizacion de Perforacion</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', system-ui, sans-serif; background: #0f172a; color: #e2e8f0; }
+        .header { background: linear-gradient(135deg, #1e293b, #334155); padding: 24px 32px; border-bottom: 2px solid #f59e0b; }
+        .header h1 { font-size: 24px; color: #f59e0b; }
+        .header p { color: #94a3b8; margin-top: 4px; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 24px; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
+        .card { background: #1e293b; border-radius: 12px; padding: 20px; border: 1px solid #334155; }
+        .card h3 { color: #f59e0b; margin-bottom: 12px; font-size: 16px; }
+        label { display: block; color: #94a3b8; font-size: 13px; margin-bottom: 4px; }
+        input, select { width: 100%; padding: 8px 12px; background: #0f172a; border: 1px solid #475569;
+            border-radius: 6px; color: #e2e8f0; font-size: 14px; margin-bottom: 12px; }
+        button { background: #f59e0b; color: #0f172a; border: none; padding: 10px 20px; border-radius: 6px;
+            cursor: pointer; font-weight: 600; font-size: 14px; width: 100%; }
+        button:hover { background: #d97706; }
+        .results { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 16px; }
+        .result-box { background: #0f172a; border-radius: 8px; padding: 16px; text-align: center; border: 1px solid #475569; }
+        .result-box .value { font-size: 28px; font-weight: 700; color: #f59e0b; }
+        .result-box .label { font-size: 12px; color: #94a3b8; margin-top: 4px; }
+        .severity-normal { color: #22c55e; }
+        .severity-moderate { color: #eab308; }
+        .severity-high { color: #f97316; }
+        .severity-critical { color: #ef4444; }
+        .chart-container { position: relative; height: 300px; margin-top: 12px; }
+        .full-width { grid-column: 1 / -1; }
+        .optimal-params { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-top: 12px; }
+        .param-box { background: #0f172a; border-radius: 8px; padding: 12px; text-align: center; border: 1px solid #22c55e; }
+        .param-box .value { font-size: 22px; font-weight: 700; color: #22c55e; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Drilling Optimization Dashboard</h1>
+        <p>Sistema ML para optimizacion de parametros de perforacion</p>
+    </div>
+    <div class="container">
+        <div class="grid">
+            <div class="card">
+                <h3>Prediccion de Parametros</h3>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+                    <div><label>Profundidad (m)</label><input type="number" id="depth_m" value="2000"></div>
+                    <div><label>WOB (klbf)</label><input type="number" id="wob_klbf" value="20"></div>
+                    <div><label>RPM</label><input type="number" id="rpm" value="120"></div>
+                    <div><label>Caudal (gpm)</label><input type="number" id="flow_rate" value="500"></div>
+                    <div><label>Peso lodo (ppg)</label><input type="number" id="mud_weight" value="10.5"></div>
+                    <div><label>Diametro broca (in)</label><input type="number" id="bit_diameter" value="12.25"></div>
+                    <div><label>Formacion</label>
+                        <select id="formation">
+                            <option value="arena">Arena</option>
+                            <option value="arcilla">Arcilla</option>
+                            <option value="caliza">Caliza</option>
+                            <option value="dolomita">Dolomita</option>
+                            <option value="anhidrita">Anhidrita</option>
+                            <option value="shale">Shale</option>
+                        </select>
+                    </div>
+                    <div><label>Tipo broca</label>
+                        <select id="bit_type">
+                            <option value="polycrystalline">PDC</option>
+                            <option value="insert">Insert</option>
+                            <option value="steel_tooth">Steel Tooth</option>
+                        </select>
+                    </div>
+                </div>
+                <button onclick="predict()">Predecir</button>
+                <div class="results" id="predResults">
+                    <div class="result-box"><div class="value" id="ropVal">--</div><div class="label">ROP (ft/hr)</div></div>
+                    <div class="result-box"><div class="value" id="torqueVal">--</div><div class="label">Torque (klft)</div></div>
+                    <div class="result-box"><div class="value" id="vibVal">--</div><div class="label">Vibracion (g)</div></div>
+                    <div class="result-box"><div class="value" id="sevVal">--</div><div class="label">Severidad</div></div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>Optimizacion Automatica</h3>
+                <p style="color:#94a3b8;font-size:13px;margin-bottom:12px">Busca WOB y RPM optimos para maximo ROP con vibracion segura</p>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+                    <div><label>Profundidad (m)</label><input type="number" id="opt_depth" value="2000"></div>
+                    <div><label>Caudal (gpm)</label><input type="number" id="opt_flow" value="500"></div>
+                    <div><label>Peso lodo (ppg)</label><input type="number" id="opt_mud" value="10.5"></div>
+                    <div><label>Formacion</label>
+                        <select id="opt_formation">
+                            <option value="arena">Arena</option>
+                            <option value="arcilla">Arcilla</option>
+                            <option value="caliza">Caliza</option>
+                            <option value="dolomita">Dolomita</option>
+                        </select>
+                    </div>
+                </div>
+                <button onclick="optimize()">Optimizar</button>
+                <div id="optResults" style="display:none">
+                    <div class="optimal-params">
+                        <div class="param-box"><div class="value" id="optWob">--</div><div class="label">WOB Optimo (klbf)</div></div>
+                        <div class="param-box"><div class="value" id="optRpm">--</div><div class="label">RPM Optimo</div></div>
+                    </div>
+                    <div class="results" style="margin-top:12px">
+                        <div class="result-box"><div class="value" id="optRop">--</div><div class="label">ROP Max (ft/hr)</div></div>
+                        <div class="result-box"><div class="value" id="optTorque">--</div><div class="label">Torque Est (klft)</div></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card full-width">
+                <h3>Analisis de Sensibilidad - ROP vs Parametros</h3>
+                <div class="chart-container"><canvas id="sensitivityChart"></canvas></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let sensChart = null;
+
+        async function predict() {
+            const body = {
+                depth_m: document.getElementById("depth_m").value,
+                wob_klbf: document.getElementById("wob_klbf").value,
+                rpm: document.getElementById("rpm").value,
+                flow_rate_gpm: document.getElementById("flow_rate").value,
+                mud_weight_ppg: document.getElementById("mud_weight").value,
+                bit_diameter_in: document.getElementById("bit_diameter").value,
+                formation: document.getElementById("formation").value,
+                bit_type: document.getElementById("bit_type").value,
+            };
+            const res = await fetch("/api/predict", {
+                method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(body)
+            });
+            const data = await res.json();
+            if (data.status === "ok") {
+                document.getElementById("ropVal").textContent = data.rop_ft_hr;
+                document.getElementById("torqueVal").textContent = data.torque_klft;
+                document.getElementById("vibVal").textContent = data.vibration_g;
+                const sevEl = document.getElementById("sevVal");
+                sevEl.textContent = data.vibration_severity;
+                sevEl.className = "value severity-" + data.vibration_severity;
+                updateSensitivityChart(body);
+            }
+        }
+
+        async function optimize() {
+            const body = {
+                depth_m: document.getElementById("opt_depth").value,
+                flow_rate_gpm: document.getElementById("opt_flow").value,
+                mud_weight_ppg: document.getElementById("opt_mud").value,
+                formation: document.getElementById("opt_formation").value,
+            };
+            const res = await fetch("/api/optimize", {
+                method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(body)
+            });
+            const data = await res.json();
+            if (data.status === "ok") {
+                document.getElementById("optResults").style.display = "block";
+                document.getElementById("optWob").textContent = data.optimal_wob;
+                document.getElementById("optRpm").textContent = data.optimal_rpm;
+                document.getElementById("optRop").textContent = data.predicted_rop;
+                document.getElementById("optTorque").textContent = data.predicted_torque;
+            }
+        }
+
+        async function updateSensitivityChart(baseParams) {
+            const wobRange = [];
+            const ropValues = [];
+            for (let w = 5; w <= 35; w += 2) {
+                wobRange.push(w);
+                const body = {...baseParams, wob_klbf: w};
+                const res = await fetch("/api/predict", {
+                    method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(body)
+                });
+                const data = await res.json();
+                ropValues.push(data.rop_ft_hr || 0);
+            }
+            if (sensChart) sensChart.destroy();
+            const ctx = document.getElementById("sensitivityChart").getContext("2d");
+            sensChart = new Chart(ctx, {
+                type: "line",
+                data: {
+                    labels: wobRange.map(w => w + " klbf"),
+                    datasets: [{
+                        label: "ROP (ft/hr)",
+                        data: ropValues,
+                        borderColor: "#f59e0b",
+                        backgroundColor: "rgba(245,158,11,0.1)",
+                        fill: true, tension: 0.3, pointRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    scales: {
+                        x: { ticks: {color: "#94a3b8"}, grid: {color: "#334155"} },
+                        y: { ticks: {color: "#94a3b8"}, grid: {color: "#334155"}, title: {display: true, text: "ROP (ft/hr)", color: "#94a3b8"} }
+                    },
+                    plugins: { legend: { labels: {color: "#e2e8f0"} } }
+                }
+            });
+        }
+    </script>
+</body>
+</html>
