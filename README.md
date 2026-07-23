@@ -1,10 +1,28 @@
 # Drilling Optimization
 
-Machine learning system for oil drilling parameter optimization.
+Machine learning system for oil drilling parameter optimization using LightGBM, Optuna, and SHAP for explainable predictions.
+
+## Tech Stack
+
+| Component | Technology |
+|-----------|-----------|
+| ML Framework | **LightGBM** - gradient boosting for ROP prediction |
+| Hyperparameter Tuning | **Optuna** - Bayesian optimization |
+| Model Explainability | **SHAP** - SHapley Additive exPlanations |
+| Web Server | **FastAPI** + uvicorn |
+| Data Processing | pandas, numpy, joblib |
+| Monitoring | prometheus-fastapi-instrumentator |
+| Validation | pydantic v2 |
+
+### Key Libraries
+- LightGBM - Fast gradient boosting framework
+- Optuna - Automatic hyperparameter optimization
+- SHAP - Model interpretation and feature importance
+- FastAPI - Modern async web framework
 
 ## ML Models
 
-- **ROP Predictor**: Gradient Boosting / Random Forest for Rate of Penetration prediction (ft/hr)
+- **ROP Predictor**: LightGBM for Rate of Penetration prediction (ft/hr)
 - **Torque Predictor**: Drilling torque prediction (klft)
 - **Vibration Analyzer**: Vibration severity classification + continuous prediction (g)
 
@@ -94,5 +112,7 @@ drilling-optimization/
 ├── test_api.py
 └── requirements.txt
 ```
+
+---
 
 Elaborado por Ing. Kelvin Cabrera
