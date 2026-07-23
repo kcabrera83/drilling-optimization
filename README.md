@@ -1,26 +1,26 @@
 # Drilling Optimization
 
-Sistema de machine learning para optimizacion de parametros de perforacion petrolera.
+Machine learning system for oil drilling parameter optimization.
 
-## Modelos ML
+## ML Models
 
-- **ROP Predictor**: Gradient Boosting / Random Forest para prediccion de Rate of Penetration (ft/hr)
-- **Torque Predictor**: Prediccion de torque de perforacion (klft)
-- **Vibration Analyzer**: Clasificacion de severidad de vibracion + prediccion continua (g)
+- **ROP Predictor**: Gradient Boosting / Random Forest for Rate of Penetration prediction (ft/hr)
+- **Torque Predictor**: Drilling torque prediction (klft)
+- **Vibration Analyzer**: Vibration severity classification + continuous prediction (g)
 
-## Requisitos
+## Requirements
 
 ```bash
 pip install -r requirements.txt
 ```
 
-## Entrenamiento
+## Training
 
 ```bash
 python train.py
 ```
 
-Genera datos sinteticos (5000 registros), entrena los 3 modelos y guarda en `outputs/models/`.
+Generates synthetic data (5000 records), trains the 3 models, and saves to `outputs/models/`.
 
 ## Dashboard
 
@@ -28,16 +28,16 @@ Genera datos sinteticos (5000 registros), entrena los 3 modelos y guarda en `out
 python app.py
 ```
 
-Disponible en http://127.0.0.1:5004
+Available at http://127.0.0.1:5004
 
 ### Endpoints
 
-| Metodo | Ruta | Descripcion |
-|--------|------|-------------|
-| GET | `/` | Dashboard web |
-| POST | `/api/predict` | Predecir ROP, torque, vibracion |
-| POST | `/api/optimize` | Optimizar WOB y RPM automaticamente |
-| GET | `/api/models` | Info de modelos entrenados |
+| Method | Route | Description |
+|--------|-------|-------------|
+| GET | `/` | Web dashboard |
+| POST | `/api/predict` | Predict ROP, torque, vibration |
+| POST | `/api/optimize` | Automatically optimize WOB and RPM |
+| GET | `/api/models` | Trained model info |
 | GET | `/api/health` | Health check |
 
 ## API Predict
@@ -76,7 +76,7 @@ Returns optimal WOB and RPM for maximum ROP with safe vibration levels.
 python test_api.py
 ```
 
-## Estructura
+## Structure
 
 ```
 drilling-optimization/

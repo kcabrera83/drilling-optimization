@@ -1,4 +1,4 @@
-"""Servidor web Flask para optimizacion de perforacion."""
+"""Flask web server for drilling optimization."""
 
 import sys
 from pathlib import Path
@@ -140,23 +140,23 @@ def api_health():
 def api_docs():
     return jsonify({
         "openapi": "3.0.0",
-        "info": {"title": "Drilling Optimization - Optimizacion de Perforacion", "version": "1.0.0"},
+        "info": {"title": "Drilling Optimization - Drilling Optimization", "version": "1.0.0"},
         "paths": {
-            "/": {"get": {"summary": "Dashboard principal"}},
-            "/api/health": {"get": {"summary": "Health check del servicio"}},
-            "/api/models": {"get": {"summary": "Informacion de los modelos entrenados"}},
-            "/api/predict": {"post": {"summary": "Predecir ROP, torque y vibracion"}},
-            "/api/optimize": {"post": {"summary": "Optimizar parametros de perforacion (WOB, RPM)"}},
+            "/": {"get": {"summary": "Main dashboard"}},
+            "/api/health": {"get": {"summary": "Service health check"}},
+            "/api/models": {"get": {"summary": "Information about trained models"}},
+            "/api/predict": {"post": {"summary": "Predict ROP, torque and vibration"}},
+            "/api/optimize": {"post": {"summary": "Optimize drilling parameters (WOB, RPM)"}},
         }
     })
 
 
 if __name__ == "__main__":
     print("=" * 60)
-    print("  Servidor Web - Optimizacion de Perforacion")
+    print("  Web Server - Drilling Optimization")
     print("=" * 60)
-    print("  Cargando modelos...")
+    print("  Loading models...")
     get_models()
-    print("  Servidor iniciando en http://127.0.0.1:5004")
+    print("  Server starting on http://127.0.0.1:5004")
     print("=" * 60)
     app.run(host="0.0.0.0", port=5004, debug=True)
