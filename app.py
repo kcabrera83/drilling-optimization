@@ -1,162 +1,164 @@
-"""Flask web server for drilling optimization."""
+"""FastAPI web server for drilling optimization."""
 
+import pickle
 import sys
 from pathlib import Path
+from typing import Any
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from flask import Flask, render_template, request, jsonify
 import numpy as np
-import pickle
+import pandas as pd
+from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
 
-app = Flask(__name__)
+app = FastAPI(
+    title="Drilling Optimization",
+    description="ROP prediction, torque prediction, vibration analysis, and drilling parameter optimization",
+    version="1.0.0",
+)
 
-_rop_model = None
-_torque_model = None
-_vib_model = None
-_preprocessor = None
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
-
-def get_models():
-    global _rop_model, _torque_model, _vib_model, _preprocessor
-    if _rop_model is None:
-        from drilling_optimization.models.rop_predictor import ROPPredictor
-        from drilling_optimization.models.torque_predictor import TorquePredictor
-        from drilling_optimization.models.vibration_analyzer import VibrationAnalyzer
-        _rop_model = ROPPredictor.load("outputs/models/rop_predictor.pkl")
-        _torque_model = TorquePredictor.load("outputs/models/torque_predictor.pkl")
-        _vib_model = VibrationAnalyzer.load("outputs/models/vibration_analyzer.pkl")
-        with open("outputs/models/preprocessor.pkl", "rb") as f:
-            _preprocessor = pickle.load(f)
-    return _rop_model, _torque_model, _vib_model, _preprocessor
+models: dict[str, Any] = {}
 
 
-@app.route("/")
-def index():
-    return render_template("index.html")
-
-
-@app.route("/api/predict", methods=["POST"])
-def api_predict():
+@app.on_event("startup")
+async def load_models():
+    from drilling_optimization.models.rop_predictor import ROPPredictor
+    from drilling_optimization.models.torque_predictor import TorquePredictor
+    from drilling_optimization.models.vibration_analyzer import VibrationAnalyzer
     try:
-        data = request.json
-        import pandas as pd
+        models["rop"] = ROPPredictor.load("outputs/models/rop_predictor.pkl")
+        models["torque"] = TorquePredictor.load("outputs/models/torque_predictor.pkl")
+        models["vibration"] = VibrationAnalyzer.load("outputs/models/vibration_analyzer.pkl")
+        with open("outputs/models/preprocessor.pkl", "rb") as f:
+            models["preprocessor"] = pickle.load(f)
+    except Exception as e:
+        print(f"  Error loading models: {e}")
+
+
+class DrillPredictRequest(BaseModel):
+    depth_m: float = 2000.0
+    wob_klbf: float = 20.0
+    rpm: int = 120
+    flow_rate_gpm: float = 500.0
+    mud_weight_ppg: float = 10.5
+    formation: str = "arena"
+    bit_type: str = "polycrystalline"
+    bit_diameter_in: float = 12.25
+    mud_viscosity_cp: float = 50.0
+    hyd_pressure_psi: float = 3000.0
+
+
+class DrillOptimizeRequest(BaseModel):
+    depth_m: float = 2000.0
+    flow_rate_gpm: float = 500.0
+    mud_weight_ppg: float = 10.5
+    formation: str = "arena"
+    bit_type: str = "polycrystalline"
+    bit_diameter_in: float = 12.25
+    mud_viscosity_cp: float = 50.0
+    hyd_pressure_psi: float = 3000.0
+
+
+@app.get("/api/health")
+async def health():
+    return {"status": "ok", "service": "drilling-optimization"}
+
+
+@app.get("/api/models")
+async def api_models():
+    if not models:
+        raise HTTPException(status_code=503, detail="Models not loaded")
+    return {
+        "status": "ok",
+        "rop_model": models["rop"].best_name,
+        "torque_model": models["torque"].best_name,
+        "vibration_status": "trained" if models["vibration"].trained else "not_trained",
+    }
+
+
+@app.post("/api/predict")
+async def api_predict(request: DrillPredictRequest):
+    if not all(k in models for k in ("rop", "torque", "vibration", "preprocessor")):
+        raise HTTPException(status_code=503, detail="Models not loaded")
+    try:
         df = pd.DataFrame([{
-            "depth_m": float(data.get("depth_m", 2000)),
-            "wob_klbf": float(data.get("wob_klbf", 20)),
-            "rpm": int(data.get("rpm", 120)),
-            "flow_rate_gpm": float(data.get("flow_rate_gpm", 500)),
-            "mud_weight_ppg": float(data.get("mud_weight_ppg", 10.5)),
-            "formation": data.get("formation", "arena"),
-            "bit_type": data.get("bit_type", "polycrystalline"),
-            "bit_diameter_in": float(data.get("bit_diameter_in", 12.25)),
-            "mud_viscosity_cp": float(data.get("mud_viscosity_cp", 50)),
-            "hyd_pressure_psi": float(data.get("hyd_pressure_psi", 3000)),
+            "depth_m": request.depth_m,
+            "wob_klbf": request.wob_klbf,
+            "rpm": request.rpm,
+            "flow_rate_gpm": request.flow_rate_gpm,
+            "mud_weight_ppg": request.mud_weight_ppg,
+            "formation": request.formation,
+            "bit_type": request.bit_type,
+            "bit_diameter_in": request.bit_diameter_in,
+            "mud_viscosity_cp": request.mud_viscosity_cp,
+            "hyd_pressure_psi": request.hyd_pressure_psi,
         }])
-
-        rop_model, torque_model, vib_model, preprocessor = get_models()
-        X = preprocessor.transform(df)
-
-        rop_pred = float(rop_model.predict(X)[0])
-        torque_pred = float(torque_model.predict(X)[0])
-        vib_result = vib_model.predict(X)
-
-        return jsonify({
+        X = models["preprocessor"].transform(df)
+        rop_pred = float(models["rop"].predict(X)[0])
+        torque_pred = float(models["torque"].predict(X)[0])
+        vib_result = models["vibration"].predict(X)
+        return {
             "status": "ok",
             "rop_ft_hr": round(rop_pred, 2),
             "torque_klft": round(torque_pred, 2),
             "vibration_g": round(float(vib_result["vibration_g"][0]), 3),
             "vibration_severity": vib_result["severity_label"][0],
-        })
-    except Exception as e:
-        return jsonify({"status": "error", "message": str(e)}), 400
-
-
-@app.route("/api/optimize", methods=["POST"])
-def api_optimize():
-    try:
-        data = request.json
-        import pandas as pd
-
-        rop_model, torque_model, vib_model, preprocessor = get_models()
-
-        base = {
-            "depth_m": float(data.get("depth_m", 2000)),
-            "flow_rate_gpm": float(data.get("flow_rate_gpm", 500)),
-            "mud_weight_ppg": float(data.get("mud_weight_ppg", 10.5)),
-            "formation": data.get("formation", "arena"),
-            "bit_type": data.get("bit_type", "polycrystalline"),
-            "bit_diameter_in": float(data.get("bit_diameter_in", 12.25)),
-            "mud_viscosity_cp": float(data.get("mud_viscosity_cp", 50)),
-            "hyd_pressure_psi": float(data.get("hyd_pressure_psi", 3000)),
         }
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
+
+@app.post("/api/optimize")
+async def api_optimize(request: DrillOptimizeRequest):
+    if not all(k in models for k in ("rop", "torque", "vibration", "preprocessor")):
+        raise HTTPException(status_code=503, detail="Models not loaded")
+    try:
+        base = {
+            "depth_m": request.depth_m,
+            "flow_rate_gpm": request.flow_rate_gpm,
+            "mud_weight_ppg": request.mud_weight_ppg,
+            "formation": request.formation,
+            "bit_type": request.bit_type,
+            "bit_diameter_in": request.bit_diameter_in,
+            "mud_viscosity_cp": request.mud_viscosity_cp,
+            "hyd_pressure_psi": request.hyd_pressure_psi,
+        }
         best_rop = 0
         best_params = {}
         best_torque = 0
-
         for wob in np.arange(10, 35, 5):
             for rpm in np.arange(80, 160, 20):
                 row = {**base, "wob_klbf": wob, "rpm": rpm}
                 df = pd.DataFrame([row])
-                X = preprocessor.transform(df)
-                rop = float(rop_model.predict(X)[0])
-                torque = float(torque_model.predict(X)[0])
-                vib = float(vib_model.predict(X)["vibration_g"][0])
-
+                X = models["preprocessor"].transform(df)
+                rop = float(models["rop"].predict(X)[0])
+                torque = float(models["torque"].predict(X)[0])
+                vib = float(models["vibration"].predict(X)["vibration_g"][0])
                 if vib < 2.5 and rop > best_rop:
                     best_rop = rop
                     best_torque = torque
                     best_params = {"wob_klbf": float(wob), "rpm": int(rpm)}
-
-        return jsonify({
+        return {
             "status": "ok",
             "optimal_wob": best_params.get("wob_klbf"),
             "optimal_rpm": best_params.get("rpm"),
             "predicted_rop": round(best_rop, 2),
             "predicted_torque": round(best_torque, 2),
-        })
-    except Exception as e:
-        return jsonify({"status": "error", "message": str(e)}), 400
-
-
-@app.route("/api/models")
-def api_models():
-    rop_model, torque_model, vib_model, _ = get_models()
-    return jsonify({
-        "status": "ok",
-        "rop_model": rop_model.best_name,
-        "torque_model": torque_model.best_name,
-        "vibration_status": "trained" if vib_model.trained else "not_trained",
-    })
-
-
-@app.route("/api/health")
-def api_health():
-    return jsonify({"status": "ok", "service": "drilling-optimization"})
-
-
-@app.route("/api/docs")
-def api_docs():
-    return jsonify({
-        "openapi": "3.0.0",
-        "info": {"title": "Drilling Optimization - Drilling Optimization", "version": "1.0.0"},
-        "paths": {
-            "/": {"get": {"summary": "Main dashboard"}},
-            "/api/health": {"get": {"summary": "Service health check"}},
-            "/api/models": {"get": {"summary": "Information about trained models"}},
-            "/api/predict": {"post": {"summary": "Predict ROP, torque and vibration"}},
-            "/api/optimize": {"post": {"summary": "Optimize drilling parameters (WOB, RPM)"}},
         }
-    })
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 
 if __name__ == "__main__":
-    print("=" * 60)
-    print("  Web Server - Drilling Optimization")
-    print("=" * 60)
-    print("  Loading models...")
-    get_models()
-    print("  Server starting on http://127.0.0.1:5004")
-    print("=" * 60)
-    app.run(host="0.0.0.0", port=5004, debug=True)
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=5004)

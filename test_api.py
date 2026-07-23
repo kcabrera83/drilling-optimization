@@ -1,4 +1,4 @@
-"""Tests de API para drilling-optimization."""
+"""Tests for drilling-optimization API."""
 
 import sys
 import json
@@ -6,8 +6,9 @@ import json
 sys.path.insert(0, ".")
 
 from app import app
+from fastapi.testclient import TestClient
 
-client = app.test_client()
+client = TestClient(app)
 
 TESTS_PASSED = 0
 TESTS_FAILED = 0
@@ -22,8 +23,7 @@ def test(name, method, url, body=None, expect_status=200):
             resp = client.post(url, json=body)
         else:
             resp = client.get(url)
-
-        data = json.loads(resp.data)
+        data = resp.json()
         ok = resp.status_code == expect_status and data.get("status") == "ok"
         status = "PASS" if ok else "FAIL"
         if ok:
@@ -42,16 +42,16 @@ def main():
     global TESTS_PASSED, TESTS_FAILED
 
     print("=" * 60)
-    print("  Tests de API - Drilling Optimization")
+    print("  Tests - Drilling Optimization")
     print("=" * 60)
 
-    print("\n[1/4] Test de salud...")
+    print("\n[1/4] Health test...")
     test("GET /api/health", "GET", "/api/health")
 
-    print("\n[2/4] Test de modelos...")
+    print("\n[2/4] Models test...")
     test("GET /api/models", "GET", "/api/models")
 
-    print("\n[3/4] Test de prediccion...")
+    print("\n[3/4] Prediction test...")
     body = {
         "depth_m": 2000, "wob_klbf": 20, "rpm": 120,
         "flow_rate_gpm": 500, "mud_weight_ppg": 10.5,
@@ -60,17 +60,17 @@ def main():
     }
     test("POST /api/predict", "POST", "/api/predict", body)
 
-    print("\n[4/4] Test de optimizacion...")
+    print("\n[4/4] Optimization test...")
     test("POST /api/optimize", "POST", "/api/optimize",
          {"depth_m": 2000, "flow_rate_gpm": 500, "mud_weight_ppg": 10.5, "formation": "arena"})
 
     print("\n" + "=" * 60)
     total = TESTS_PASSED + TESTS_FAILED
-    print(f"  Resultado: {TESTS_PASSED}/{total} tests pasaron")
+    print(f"  Result: {TESTS_PASSED}/{total} tests passed")
     if TESTS_FAILED == 0:
-        print("  Todos los tests pasaron correctamente")
+        print("  All tests passed")
     else:
-        print(f"  {TESTS_FAILED} test(s) fallaron")
+        print(f"  {TESTS_FAILED} test(s) failed")
     print("=" * 60)
     return 0 if TESTS_FAILED == 0 else 1
 
