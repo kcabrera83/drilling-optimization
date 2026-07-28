@@ -176,7 +176,7 @@ async def api_optimize(request: DrillOptimizeRequest):
         raise HTTPException(status_code=400, detail=str(e))
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=5004)
 

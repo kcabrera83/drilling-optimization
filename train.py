@@ -85,5 +85,5 @@ def main():
     print(f"  Vibration Analyzer: Acc={vib_eval['classification_accuracy']:.4f} | R2={vib_eval['regression_r2']:.4f}")
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()

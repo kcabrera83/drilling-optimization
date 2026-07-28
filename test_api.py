@@ -70,5 +70,5 @@ def main():
     return 0 if TESTS_FAILED == 0 else 1
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     sys.exit(main())
