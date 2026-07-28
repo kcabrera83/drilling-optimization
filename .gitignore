@@ -1,7 +1,12 @@
 __pycache__/
 *.pyc
 *.pyo
-outputs/
+outputs/*
 *.pkl
 .venv/
 venv/
+
+# Streamlit Cloud model files
+!outputs/models/
+!outputs/models/*.pkl
+
