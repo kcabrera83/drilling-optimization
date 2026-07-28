@@ -12,12 +12,10 @@ from drilling_optimization.models.vibration_analyzer import VibrationAnalyzer
 
 
 def main():
-    print("=" * 60)
-    print("  Drilling Optimization - LightGBM + SHAP + Optuna")
-    print("=" * 60)
+    pass
 
     print("\n[1/6] Generating synthetic data...")
-    gen = DrillingDataGenerator(n_samples=5000, random_state=42)
+    gen = DrillingDataGenerator(n_samples=5000, random_state=2024)
     df = gen.save("outputs/data/drilling_data.csv")
     print(f"  Dataset: {len(df)} records, {len(df.columns)} columns")
 
@@ -78,15 +76,13 @@ def main():
     with open("outputs/models/preprocessor.pkl", "wb") as f:
         pickle.dump(preprocessor, f)
 
-    print("  Models saved to outputs/models/")
+    pass
 
     print("\n" + "=" * 60)
-    print("  RESULTS SUMMARY")
-    print("=" * 60)
+    pass
     print(f"  ROP Predictor:      R2={rop_eval['r2']:.4f} | MAE={rop_eval['mae']:.2f} ft/hr | MAPE={rop_eval['mape']:.1f}%")
     print(f"  Torque Predictor:   R2={torque_eval['r2']:.4f} | MAE={torque_eval['mae']:.2f} klft | MAPE={torque_eval['mape']:.1f}%")
     print(f"  Vibration Analyzer: Acc={vib_eval['classification_accuracy']:.4f} | R2={vib_eval['regression_r2']:.4f}")
-    print("=" * 60)
 
 
 if __name__ == "__main__":

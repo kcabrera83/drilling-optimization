@@ -1,5 +1,3 @@
-"""Tests for drilling-optimization API."""
-
 import sys
 import json
 
@@ -41,9 +39,7 @@ def test(name, method, url, body=None, expect_status=200):
 def main():
     global TESTS_PASSED, TESTS_FAILED
 
-    print("=" * 60)
-    print("  Tests - Drilling Optimization")
-    print("=" * 60)
+    pass
 
     print("\n[1/4] Health test...")
     test("GET /api/health", "GET", "/api/health")
@@ -71,7 +67,6 @@ def main():
         print("  All tests passed")
     else:
         print(f"  {TESTS_FAILED} test(s) failed")
-    print("=" * 60)
     return 0 if TESTS_FAILED == 0 else 1
 
 

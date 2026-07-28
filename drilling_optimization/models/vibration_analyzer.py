@@ -9,10 +9,10 @@ class VibrationAnalyzer:
 
     def __init__(self):
         self.classifier = lgb.LGBMClassifier(
-            n_estimators=200, max_depth=10, random_state=42, verbose=-1
+            n_estimators=200, max_depth=10, random_state=2024, verbose=-1
         )
         self.severity_regressor = lgb.LGBMRegressor(
-            n_estimators=150, max_depth=5, learning_rate=0.1, random_state=42, verbose=-1
+            n_estimators=150, max_depth=5, learning_rate=0.1, random_state=2024, verbose=-1
         )
         self.trained = False
 

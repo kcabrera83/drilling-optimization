@@ -36,7 +36,7 @@ class ROPPredictor:
         study = optuna.create_study(direction='minimize')
         study.optimize(objective, n_trials=30, show_progress_bar=False)
 
-        self.model = lgb.LGBMRegressor(**study.best_params, verbose=-1, random_state=42)
+        self.model = lgb.LGBMRegressor(**study.best_params, verbose=-1, random_state=2024)
         self.model.fit(X, y)
 
         pred = self.model.predict(X)

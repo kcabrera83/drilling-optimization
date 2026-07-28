@@ -1,5 +1,3 @@
-"""Modulo de preprocesamiento para datos de perforacion."""
-
 import numpy as np
 import pandas as pd
 from sklearn.preprocessing import StandardScaler, LabelEncoder

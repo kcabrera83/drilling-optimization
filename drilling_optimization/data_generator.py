@@ -1,5 +1,3 @@
-"""Generador de datos sinteticos para optimizacion de perforacion."""
-
 import numpy as np
 import pandas as pd
 
@@ -10,7 +8,7 @@ class DrillingDataGenerator:
     FORMATIONS = ["arcilla", "arena", "caliza", "dolomita", "anhidrita", "shale"]
     BIT_TYPES = ["polycrystalline", "insert", "steel_tooth"]
 
-    def __init__(self, n_samples=5000, random_state=42):
+    def __init__(self, n_samples=5000, random_state=2024):
         self.n_samples = n_samples
         self.rng = np.random.RandomState(random_state)
 
