@@ -1,37 +1,62 @@
 import streamlit as st
-import sys
+import joblib, numpy as np, matplotlib.pyplot as plt
 from pathlib import Path
-sys.path.insert(0, str(Path(__file__).parent))
+import sys; sys.path.insert(0, str(Path(__file__).parent))
 
 st.set_page_config(page_title="Drilling Optimization", layout="wide")
 st.title("Drilling Optimization")
-st.markdown("Optimize drilling parameters to maximize ROP and minimize vibrations.")
+st.markdown("Maximize ROP while minimizing torque and vibration")
 
-import joblib, numpy as np
-d = Path(__file__).parent / 'outputs' / 'models'
-models = {'rop': joblib.load(d / 'rop_predictor.pkl'), 'torque': joblib.load(d / 'torque_predictor.pkl'), 'vibration': joblib.load(d / 'vibration_analyzer.pkl')}
+@st.cache_resource
+def load_models():
+    base = Path(__file__).parent / 'outputs' / 'models'
+    return {'rop': joblib.load(base / 'rop_predictor.pkl'), 'torque': joblib.load(base / 'torque_predictor.pkl'), 'vibration': joblib.load(base / 'vibration_analyzer.pkl')}
 
-st.sidebar.header("Input Parameters")
-depth_m = st.sidebar.slider('Depth M', 500, 5000, 2750)
-wob_klbf = st.sidebar.slider('Wob Klbf', 10, 80, 45)
-rpm = st.sidebar.slider('Rpm', 30, 200, 115)
-flow_rate_gpm = st.sidebar.slider('Flow Rate Gpm', 200, 1500, 850)
-mud_weight_ppg = st.sidebar.slider('Mud Weight Ppg', 8, 20, 14)
-formation = st.sidebar.selectbox('Formation', ['sandstone','shale','limestone','dolomite'])
-bit_type = st.sidebar.selectbox('Bit Type', ['roller_cone','pdc','diamond'])
-bit_diameter_in = st.sidebar.slider('Bit Diameter In', 6, 26, 16)
+models = load_models()
 
-if st.sidebar.button("Run"):
-    try:
-        x = np.array([[depth_m, wob_klbf, rpm, flow_rate_gpm, mud_weight_ppg, formation, bit_type, bit_diameter_in]])
-        cols = st.columns(3)
-        for i, (k, m) in enumerate(models.items()):
-            X = m['scaler'].transform(x)
-            p = m['model'].predict(X)
-            if 'label_encoder' in m:
-                val = m['label_encoder'].inverse_transform(p)[0]
+def predict(name, x):
+    m = models[name]
+    if isinstance(m, dict):
+        X = m['scaler'].transform(x)
+        p = m['model'].predict(X)
+        if 'label_encoder' in m:
+            return m['label_encoder'].inverse_transform(p)[0]
+        return float(p[0])
+    return float(m.predict(x)[0])
+
+col1, col2 = st.columns([1, 2])
+with col1:
+    st.subheader('Parameters')
+    depth = st.slider('Depth', 500, 5000, 2750)
+    wob = st.slider('Wob', 10, 80, 45)
+    rpm = st.slider('Rpm', 30, 200, 115)
+    flow = st.slider('Flow', 200, 1500, 850)
+    mud = st.slider('Mud', 8, 20, 14)
+    formation = st.selectbox('Formation', ['sandstone','shale','limestone','dolomite'])
+    bit = st.selectbox('Bit', ['roller_cone','pdc','diamond'])
+    diam = st.slider('Diam', 6, 26, 16)
+    run = st.button('Run Prediction', use_container_width=True)
+
+with col2:
+    if run:
+        x = np.array([[depth, wob, rpm, flow, mud, formation, bit, diam]])
+        results = {}
+        results['rop'] = predict('rop', x)
+        results['torque'] = predict('torque', x)
+        results['vibration'] = predict('vibration', x)
+        st.subheader('Results')
+        rcols = st.columns(len(results))
+        for i, (k, v) in enumerate(results.items()):
+            label = k.replace('_', ' ').title()
+            if isinstance(v, str):
+                rcols[i].metric(label, v)
             else:
-                val = f'{p[0]:.2f}'
-            cols[i].metric(k.title(), val)
-    except Exception as e:
-        st.error(str(e))
+                rcols[i].metric(label, f'{v:.2f}')
+        # Plot
+        fig, ax = plt.subplots()
+        names = [k.replace('_',' ').title() for k in results]
+        vals = [float(v) if isinstance(v, (int,float,str)) and str(v).replace('.','').replace('-','').isdigit() else 0 for v in results.values()]
+        if any(v != 0 for v in vals):
+            ax.bar(names, vals, color=['#0077B6','#00B4D8','#90E0EF'])
+            ax.set_ylabel('Value')
+            st.pyplot(fig)
