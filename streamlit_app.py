@@ -1,5 +1,6 @@
 import streamlit as st
 import pickle
+import joblib
 import numpy as np
 import sys
 from pathlib import Path
@@ -12,7 +13,7 @@ st.markdown("Optimize drilling parameters (WOB, RPM) to maximize ROP and minimiz
 @st.cache_resource
 def load_models():
     d = Path(__file__).parent / "outputs" / "models"
-    return {k: pickle.load(open(d / v, "rb")) for k, v in [("rop", "rop_predictor.pkl"), ("torque", "torque_predictor.pkl"), ("vibration", "vibration_analyzer.pkl")]}
+    return {k: joblib.load(d / v) for k, v in [("rop", "rop_predictor.pkl"), ("torque", "torque_predictor.pkl"), ("vibration", "vibration_analyzer.pkl")]}
 
 models = load_models()
 
