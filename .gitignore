@@ -10,3 +10,7 @@ venv/
 !outputs/models/
 !outputs/models/*.pkl
 
+
+# Security & MLflow
+.env
+mlflow.db
